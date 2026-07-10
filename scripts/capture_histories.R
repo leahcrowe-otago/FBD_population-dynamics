@@ -82,6 +82,32 @@ PA_timeline
 
 ggsave('./figures/PA_timeline.png', PA_timeline, dpi = 320, width = 200, height = 100, units = 'mm')
 
+num_photodays<-PA_dates_SA%>%
+  group_by(POD, CALFYEAR, SEASON)%>%
+  tally()%>%
+  dplyr::rename("num_photo_days_season" = "n")%>%
+  mutate(num_photo_days_year = sum(num_photo_days_season))%>%
+  group_by(POD, CALFYEAR)%>%
+  mutate(`Number of seasons sampled` = n_distinct(SEASON))
+
+num_photodays$`Number of seasons sampled` = as.factor(num_photodays$`Number of seasons sampled`)
+
+#Okabe-Ito Palette
+my_colors <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442") # Orange, Sky Blue, Bluish Green, Yellow
+
+num_photo_days_year<-ggplot(num_photodays)+
+  geom_point(aes(x = CALFYEAR, num_photo_days_year, color = `Number of seasons sampled`), size = 3, alpha = 0.8)+
+  scale_x_continuous(breaks = c(2005:2023))+
+  facet_wrap(~POD, ncol = 1)+
+  theme_bw()+
+  #scale_color_viridis_d()+
+  scale_color_manual(values = my_colors)+
+  theme(legend.position = "bottom")+
+  xlab(expression("Dolphin year (01Sep"[y-1]~"–31Aug"[y]~")"))+
+  ylab("Number of photo days per year")
+
+ggsave('./figures/num_photo_days_year.png', num_photo_days_year, dpi = 320, width = 200, height = 150, units = 'mm')
+
 ## Capture histories----
 
 # all photos of Doubtful/Dusky members
@@ -257,7 +283,7 @@ ID_per_day_all<-IDperday_fxn(everyone,photo_days_all)%>%mutate(area = "All areas
 saveRDS(ID_per_day_all, "./data/ID_per_day_all.RDS") 
 
 # IDs per day of the Doubtful and Dusky members collected in the survey areas only
-ID_per_day_SA<-IDperday_fxn(everyone_SA,photo_days_SA)%>%mutate(area = "Complexes only")
+ID_per_day_SA<-IDperday_fxn(everyone_SA,photo_days_SA)%>%mutate(area = "Survey area")
 saveRDS(ID_per_day_SA, "./data/ID_per_day_SA.RDS") 
 
 # combine dataframes to plot
@@ -275,7 +301,7 @@ count_ID_samp<-ggplot(ID_per_day_together)+
   theme(axis.text.x=element_text(angle=90, vjust=0.5),
         legend.title = element_blank(),
         legend.position = "bottom")+
-  scale_color_manual(values = c("All areas" = "red", "Complexes only" = "black"))
+  scale_color_manual(values = c("All areas" = "red", "Survey area" = "black"))
 
 count_ID_samp
 
