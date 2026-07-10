@@ -9,96 +9,107 @@ library(dplyr)
 
 ## only data collected in Doubtful or Dusky complexes
 ## annual ch
-everyone_ch_SA<-readRDS("./data/everyone_ch_calfyr.RDS")
-long_samp_ch_SA<-readRDS("./data/long_samp_calfyr.RDS")
+everyone_ch_AA<-readRDS("./data/everyone_ch_calfyr.RDS")
+long_samp_ch_AA<-readRDS("./data/long_samp_calfyr.RDS")
 
 # matrices and model run
 
 source('./scripts/model_run.R', local = TRUE)$value
 
 ## save results ----
-saveRDS(out1_df, file = paste0("./data/survival&cap_SA_calfyr",Sys.Date(),".rds"))
+saveRDS(out1_df, file = paste0("./data/survival&cap_AA_calfyr",Sys.Date(),".rds"))
 
 # Load results ----
 ##calf year annual abundance
 
 date = "2026-02-14" #CALFYR
-results_in_SA<-readRDS(paste0("./data/survival&cap_SA_calfyr",date,".rds"))
+results_in_AA<-readRDS(paste0("./data/survival&cap_AA_calfyr",date,".rds"))
 
-results_SA<-as.data.frame(summary(results_in_SA))
-results_SA
-min(results_SA$ess_bulk, na.rm = T)
-max(results_SA$rhat, na.rm = T)
+results_AA<-as.data.frame(summary(results_in_AA))
+results_AA
+min(results_AA$ess_bulk, na.rm = T)
+max(results_AA$rhat, na.rm = T)
 
-bayesplot::mcmc_trace(results_in_SA, pars = c("beta[1]", "beta[2]","alpha[1]","alpha[2]","sigma[1]","sigma[2]")) 
+saveRDS(results_AA, file = paste0("./data/results_AA",Sys.Date(),".rds"))
 
-results_SA%>%
+bayesplot::mcmc_trace(results_in_AA, pars = c("beta[1]", "beta[2]","alpha[1]","alpha[2]","sigma[1]","sigma[2]")) 
+
+results_AA%>%
   filter(grepl("sigma", variable))%>%
   mutate(sigma2 = median^2)
 
-results_SA%>%
+results_AA%>%
   filter(grepl("alpha", variable))%>%
   mutate(sigma2 = median^2)
 
-beta_med<-results_SA%>%
+beta_med<-results_AA%>%
   filter(grepl("beta", variable))%>%
   mutate(inv_logit_beta_med = 1/(1+exp(-median)),
          pod = c("DOUBTFUL","DUSKY"))
 
-results_SA%>%
+results_AA%>%
   filter(grepl("phi.est", variable))
 
-results_SA%>%
+results_AA%>%
   filter(grepl("epsilon", variable))
 
 ## surival prob # not identifiable at last occasion
 
-results_phi_SA<-results_SA%>%
+results_phi_AA<-results_AA%>%
   filter(grepl("phi.est", variable))%>%
   mutate(CALF_YR = rep(c(2005:2022), each = 2),
-         pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 1), (n_occ-1)))
+         pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 1), (n_occ-1)))%>%
+  filter(!(pod == "DUSKY" & CALF_YR < 2007))
 
-summary(results_phi_SA)
+summary(results_phi_AA)
+
+saveRDS(results_phi_AA, file = paste0("./data/results_phi_AA",Sys.Date(),".rds"))
 
 library(ggplot2)
 
 ## capture prob # not identifiable at first occasion
 
-results_p_SA<-results_SA%>%
+results_p_AA<-results_AA%>%
   filter(grepl("p.est", variable))%>%
   mutate(CALF_YR = rep(c(2006:2023), each = 2),
-         pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 1), (n_occ-1)))
+         pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 1), (n_occ-1)))%>%
+  filter(!(pod == "DUSKY" & CALF_YR < 2007))
+
+saveRDS(results_p_AA, file = paste0("./data/results_p_AA",Sys.Date(),".rds"))
 
 ### CALFYR
 
-N_SA<-results_SA%>%
+N_AA<-results_AA%>%
   filter(grepl("Doubtful_N", variable) | grepl("Dusky_N", variable))%>%
   mutate(CALF_YR = c(2005:2023,2005:2023),
-         Pod = c(rep("DOUBTFUL",19),rep("DUSKY",19)))
+         pod = c(rep("DOUBTFUL",19),rep("DUSKY",19)))%>%
+  filter(!(pod == "DUSKY" & CALF_YR < 2007))
 
-sumstats_n_SA<-N_SA%>%
+saveRDS(N_AA, file = paste0("./data/results_N_AA",Sys.Date(),".rds"))
+
+sumstats_n_AA<-N_AA%>%
   filter(median > 0)%>%
-  group_by(Pod)%>%
+  group_by(pod)%>%
   dplyr::summarise(q5_N = quantile(median, 0.05), med_N = median(median), q95_N = quantile(median, 0.95), min_q5 = min(q5), max_q95 = max(q95))
 
 
-ggplot(N_SA%>%filter(median > 0))+
-  #geom_hline(data = sumstats_n_SA, mapping = aes(yintercept = med_N, color = Pod), linetype = "dashed")+
-  #geom_rect(data = sumstats_n_SA, mapping = aes(ymin = q5_N, ymax = q95_N, xmin = 2005.33, xmax = 2023.67, fill = Pod), alpha = 0.2)+
-  geom_ribbon(aes(ymin = q5, ymax = q95, x = as.numeric(CALF_YR), color = Pod, fill = Pod), alpha = 0.8)+
-  geom_path(aes(x = as.numeric(CALF_YR), y = median, group = Pod), color = "black", alpha = 0.8)+
+ggplot(N_AA%>%filter(median > 0))+
+  #geom_hline(data = sumstats_n_AA, mapping = aes(yintercept = med_N, color = Pod), linetype = "dashed")+
+  #geom_rect(data = sumstats_n_AA, mapping = aes(ymin = q5_N, ymax = q95_N, xmin = 2005.33, xmax = 2023.67, fill = Pod), alpha = 0.2)+
+  geom_ribbon(aes(ymin = q5, ymax = q95, x = as.numeric(CALF_YR), color = pod, fill = pod), alpha = 0.8)+
+  geom_path(aes(x = as.numeric(CALF_YR), y = median, group = pod), color = "black", alpha = 0.8)+
   theme_bw()+
   xlab(expression("Dolphin year (01Sep"[y-1]~"–31Aug"[y]~")"))+
   ylab("Abundance")+
   theme(legend.position = "bottom")+
   scale_x_continuous(breaks = c(2005:2024))
 
-ggsave(paste0("./figures/abund_SA_ribbon_CALFYR_",date,".png"), dpi = 300, width = 300, height = 150, units = "mm")
+ggsave(paste0("./figures/abund_AA_ribbon_CALFYR_",date,".png"), dpi = 300, width = 300, height = 150, units = "mm")
 
-N_SA%>%group_by(Pod)%>%filter(median > 0)%>%dplyr::summarise(min = min(median), max = max(median), med = median(median))
+N_AA%>%group_by(pod)%>%filter(median > 0)%>%dplyr::summarise(min = min(median), max = max(median), med = median(median))
 ###
 
-phi_together<-ggplot(results_phi_SA, aes(x = as.numeric(CALF_YR), y = median))+
+phi_together<-ggplot(results_phi_AA, aes(x = as.numeric(CALF_YR), y = median))+
   geom_errorbar(aes(ymin = q5, ymax = q95), alpha = 0.8)+
   geom_point()+
   geom_hline(beta_med, mapping = aes(yintercept = inv_logit_beta_med), linetype = "dashed", color = "red", alpha = 0.8)+
@@ -117,7 +128,7 @@ phi_together
 
 ggsave(paste0('./figures/phi_together_CALFYR_',date,'.png'), phi_together, dpi = 300, width = 200, height = 100, units = "mm")
 
-p_together<-ggplot(results_p_SA, aes(x = as.numeric(CALF_YR), y = median))+
+p_together<-ggplot(results_p_AA, aes(x = as.numeric(CALF_YR), y = median))+
   geom_errorbar(aes(ymin = q5, ymax = q95), alpha = 0.8)+
   geom_point()+
   facet_wrap(~pod)+
@@ -141,9 +152,9 @@ ggsave(paste0('./figures/phi_p_together2_CALFYR_',date,'.png'), phi_p_together, 
 
 ###
 
-nrow(results_p_SA)
+nrow(results_p_AA)
 
-results_p_SA%>%
+results_p_AA%>%
   group_by(pod)%>%
   dplyr::summarise(med_med = median(median), min = min(median), max = max(median))
  
