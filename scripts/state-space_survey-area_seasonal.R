@@ -20,7 +20,7 @@ source('./scripts/model_run.R', local = TRUE)$value
 saveRDS(out1_df, file = paste0("./data/survival&cap_SA",Sys.Date(),".rds"))
 
 # Load results ----
-date = "2025-01-29"
+#date = "2025-01-29"
 date = "2026-03-31"
 results_in_SA<-readRDS(paste0("./data/survival&cap_SA",date,".rds"))
 
@@ -68,7 +68,7 @@ results_phi_SA<-results_SA%>%
   mutate(eff = case_when(
     IDperDay != 0 ~ "effort",
     TRUE ~ "no effort"))%>%
-  mutate(area = "Complexes only")
+  mutate(area = "Survey area")
 
 summary(results_phi_SA)
   
@@ -89,7 +89,7 @@ results_p_SA<-results_SA%>%
   mutate(eff = case_when(
     IDperDay != 0 ~ "effort",
     TRUE ~ "no effort"))%>%
-  mutate(area = "Complexes only")
+  mutate(area = "Survey area")
 
 ###
 
@@ -211,7 +211,7 @@ ggsave(paste0('./figures/phi_box_',date,'.png'), phi_box, dpi = 300, width = 200
 ###
 p_SA<-results_p_SA%>%filter(eff != "no effort")
 
-# complexes only for capture days
+# Survey area only for capture days
 library(ggridges)
 season_point<-ggplot(results_p_SA%>%filter(eff != "no effort"), aes(y = median, x = n.x, fill = Season))+
   geom_point(shape = 21, size = 3, alpha = 0.5)+
