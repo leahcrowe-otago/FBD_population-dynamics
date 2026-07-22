@@ -82,32 +82,6 @@ PA_timeline
 
 ggsave('./figures/PA_timeline.png', PA_timeline, dpi = 320, width = 200, height = 100, units = 'mm')
 
-num_photodays<-PA_dates_SA%>%
-  group_by(POD, CALFYEAR, SEASON)%>%
-  tally()%>%
-  dplyr::rename("num_photo_days_season" = "n")%>%
-  mutate(num_photo_days_year = sum(num_photo_days_season))%>%
-  group_by(POD, CALFYEAR)%>%
-  mutate(`Number of seasons sampled` = n_distinct(SEASON))
-
-num_photodays$`Number of seasons sampled` = as.factor(num_photodays$`Number of seasons sampled`)
-
-#Okabe-Ito Palette
-my_colors <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442") # Orange, Sky Blue, Bluish Green, Yellow
-
-num_photo_days_year<-ggplot(num_photodays)+
-  geom_point(aes(x = CALFYEAR, num_photo_days_year, color = `Number of seasons sampled`), size = 3, alpha = 0.8)+
-  scale_x_continuous(breaks = c(2005:2023))+
-  facet_wrap(~POD, ncol = 1)+
-  theme_bw()+
-  #scale_color_viridis_d()+
-  scale_color_manual(values = my_colors)+
-  theme(legend.position = "bottom")+
-  xlab(expression("Dolphin year (01Sep"[y-1]~"–31Aug"[y]~")"))+
-  ylab("Number of photo days per year")
-
-ggsave('./figures/num_photo_days_year.png', num_photo_days_year, dpi = 320, width = 200, height = 150, units = 'mm')
-
 ## Capture histories----
 
 # all photos of Doubtful/Dusky members
@@ -234,14 +208,96 @@ photo_days<-function(x){
     month >= 1 & month <= 4 ~ 0.33,
     month >= 5 & month <= 8 ~ 0.67))%>%
   mutate(year_season_code = CALFYEAR+season_code)%>%
-  distinct(POD, year_season_code, DATE)%>%
-  group_by(POD, year_season_code)%>%
+  distinct(POD, CALFYEAR, year_season_code, DATE)%>%
+  group_by(POD, CALFYEAR, year_season_code)%>%
   tally()%>%
   as.data.frame()
 }
 
 photo_days_all<-photo_days(PA_dates) # based on all effort regardless of survey area
 photo_days_SA<-photo_days(PA_dates_SA) # based only on effort in the survey areas
+head(photo_days_SA)
+
+####
+
+num_photodays<-photo_days_SA%>%
+  group_by(POD, CALFYEAR, year_season_code)%>%
+  dplyr::rename("num_photo_days_season" = "n")%>%
+  group_by(POD, CALFYEAR)%>%
+  mutate(num_photo_days_year = sum(num_photo_days_season))%>%
+  mutate(`Number of seasons sampled` = n_distinct(year_season_code))%>%
+  mutate(Season = case_when(
+    grepl(".33", year_season_code) ~ "Summer",
+    grepl(".67", year_season_code) ~ "Winter",
+    TRUE ~ "Spring"
+  ))
+
+head(num_photodays)
+
+num_photodays$`Number of seasons sampled` = as.factor(num_photodays$`Number of seasons sampled`)
+
+### seasons per year
+num_seasons_year<-ggplot(num_photodays)+
+  geom_point(aes(x = CALFYEAR, as.factor(`Number of seasons sampled`)), size = 3, alpha = 0.8)+
+  scale_x_continuous(breaks = c(2005:2023))+
+  facet_wrap(~POD, ncol = 1)+
+  theme_bw()+
+  scale_color_viridis_d()+
+  #scale_color_manual(values = my_colors)+
+  theme(axis.text.x=element_text(angle=90, vjust=0.5))+
+  xlab(expression("Dolphin year (01Sep"[y-1]~"–31Aug"[y]~")"))+
+  ylab("# of seasons w/ photo days")
+
+### annual photos days
+num_photo_days_year<-ggplot(num_photodays)+
+  geom_point(aes(x = CALFYEAR, num_photo_days_year), size = 3, alpha = 0.8)+
+  scale_x_continuous(breaks = c(2005:2023))+
+  facet_wrap(~POD, ncol = 1)+
+  theme_bw()+
+  scale_color_viridis_d()+
+  theme(axis.text.x=element_text(angle=90, vjust=0.5))+
+  xlab(expression("Dolphin year (01Sep"[y-1]~"–31Aug"[y]~")"))+
+  ylab("# of photo days per year")
+
+### photos days per season
+num_photo_days_season<-ggplot(num_photodays)+
+  geom_point(aes(x = year_season_code, y = num_photo_days_season, fill = Season), shape = 21, alpha = 0.8, size = 3)+
+  scale_x_continuous(breaks = c(2005:2023))+
+  facet_wrap(~POD, ncol = 1)+
+  theme_bw()+
+  scale_color_viridis_d()+
+  #scale_color_manual(values = my_colors)+
+  theme(legend.position = "bottom")+
+  xlab(expression("Dolphin year (01Sep"[y-1]~"–31Aug"[y]~")"))+
+  ylab("# of photo days per season")+
+  scale_fill_manual(values = c("Spring" = "orange", "Summer" = "lightgrey", "Winter" = "blue"))
+
+ab<-ggpubr::ggarrange(num_seasons_year,num_photo_days_year, labels = "auto")
+ggpubr::ggarrange(ab, num_photo_days_season, nrow = 2, labels = c("","c"))
+ggsave('./figures/supp_effort.png', dpi = 320, width = 300, height = 200, units = 'mm')
+
+num_ind_days<-everyone_SA%>%
+  ungroup()%>%
+  distinct(POD, NAME, year_season_code)%>%
+  group_by(POD, year_season_code)%>%
+  tally()%>%
+  left_join(num_photodays, by = c("POD", "year_season_code"))
+  
+ggplot(num_ind_days, aes(x = num_photo_days_season, y = n, label = CALFYEAR, fill = Season))+
+  geom_point(shape = 21, alpha = 0.8, size = 3)+
+  facet_wrap(~POD, scales = "free_y", ncol = 2 )+
+  geom_text(hjust = 0, nudge_x = -1.2, nudge_y = -1.2)+
+  theme_bw()+
+  ylab("# of photo days per season")+
+  xlab("Number of individuals captured")+
+  theme(legend.position = "bottom")+
+  scale_x_continuous(breaks = seq(0,26,5),
+                     minor_breaks = seq(0,26,1)) +
+  scale_fill_manual(values = c("Spring" = "orange", "Summer" = "lightgrey", "Winter" = "blue"))
+  
+ggsave('./figures/days_ind.png', dpi = 320, width = 300, height = 200, units = 'mm')
+
+# sampled occasions vs not
 
 occasions<-yr_season_code%>%
   filter(CALFYEAR >= 2005 & CALFYEAR < 2024)%>%
