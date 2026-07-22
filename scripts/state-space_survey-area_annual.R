@@ -45,6 +45,8 @@ results_AA%>%
 beta_med<-results_AA%>%
   filter(grepl("beta", variable))%>%
   mutate(inv_logit_beta_med = 1/(1+exp(-median)),
+         inv_logit_beta_q5 = 1/(1+exp(-q5)),
+         inv_logit_beta_q95 = 1/(1+exp(-q95)),
          pod = c("DOUBTFUL","DUSKY"))
 
 results_AA%>%
