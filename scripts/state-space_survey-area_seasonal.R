@@ -42,14 +42,41 @@ results_SA%>%
 beta_med<-results_SA%>%
   filter(grepl("beta", variable))%>%
   mutate(inv_logit_beta_med = 1/(1+exp(-median)),
+         inv_logit_beta_q5 = 1/(1+exp(-q5)),
+         inv_logit_beta_q95 = 1/(1+exp(-q95)),
          pod = c("DOUBTFUL","DUSKY"))
 
 results_SA%>%
   filter(grepl("phi.est", variable))
 
-results_SA%>%
-  filter(grepl("epsilon", variable))
+eps<-results_SA%>%
+  filter(grepl("epsilon", variable))%>%
+  mutate(var = rep(rep(c("p","phi"), each = 1, (n_occ-1)*2)),
+         pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 2), (n_occ-1)),
+         calfyr_season = (rep(names(long_samp_ch_SA)[2:(n_occ)], each = 4)))%>%
+  mutate(Season = case_when(
+    grepl(".33", calfyr_season) ~ "Summer",
+    grepl(".67", calfyr_season) ~ "Winter",
+    TRUE ~ "Spring"
+  ))
 
+ggplot(eps%>%filter(var == "phi"))+
+  geom_boxplot(aes(x = Season, y = median))+
+  facet_wrap(~pod)
+
+ggplot(eps%>%filter(var == "p"))+
+  geom_boxplot(aes(x = Season, y = median))+
+  facet_wrap(~pod)
+
+eps%>%
+  group_by(var, pod, Season)%>%
+  mutate(q5 = quantile(median, 0.05),
+         q25 = quantile(median, 0.25),
+         q50 = quantile(median, 0.50),
+         q75 = quantile(median, 0.75),
+         q95 = quantile(median, 0.95))%>%
+  distinct(pod, var, Season, q5, q25, q50, q75,q95)
+  
 ## surival prob # not identifiable at last occasion
 occasions_SA<-names(long_samp_ch_SA)
 
@@ -134,6 +161,37 @@ head(results_phi)
 
 results_p<-results_p_SA%>%
   filter(!(pod == "DUSKY" & calfyr_season == 2007.00))
+
+results_p%>%filter(eff != "no effort")%>%
+  filter(median == min(median))
+
+results_p%>%filter(eff != "no effort")%>%
+  filter(pod == "DUSKY")%>%
+  filter(median == min(median))
+
+results_p%>%filter(CALFYEAR == 2011)
+
+results_p%>%filter(eff != "no effort")%>%
+  group_by(pod, Season)%>%
+  mutate(q5 = quantile(median, 0.05),
+         q25 = quantile(median, 0.25),
+         q50 = quantile(median, 0.50),
+         q75 = quantile(median, 0.75),
+         q95 = quantile(median, 0.95))%>%
+  distinct(pod, q5, q25, q50, q75,q95)
+
+results_p%>%filter(eff != "no effort")%>%
+  filter(pod == "DOUBTFUL")%>%
+  mutate(n = n())%>%
+  filter(median >= 0.98)
+
+36/51
+
+results_p%>%filter(eff != "no effort")%>%
+  filter(pod == "DUSKY")%>%
+  mutate(n = n())%>%
+  filter(median >= 0.98)
+28/47
 
 head(results_p)
 
@@ -221,6 +279,9 @@ season_point<-ggplot(results_p_SA%>%filter(eff != "no effort"), aes(y = median, 
   ylab(expression('Capture probability, p'))+
   scale_fill_manual(values = c("Spring" = "orange", "Summer" = "lightgrey", "Winter" = "blue"))+
   facet_wrap(~pod+Season)
+
+results_p_SA%>%filter(eff != "no effort")%>%filter(pod == "DUSKY" & n.x > 9)
+results_p_SA%>%filter(eff != "no effort")%>%filter(pod == "DOUBTFUL" & n.x > 4 & median < 0.90)
 
 ggsave(paste0('./figures/season_point_',date,'.png'), season_point, dpi = 300, width = 200, height = 100, units = "mm")
 
