@@ -69,9 +69,9 @@ mcmc.data<-list(
 
 ## run model ----
 rjags::load.module("glm")
-m1 = rjags::jags.model("pod_surv_cap-2026.txt", data = mcmc.data, inits = mcmc.inits, n.chains = 3, n.adapt = 5000)
+m1 = rjags::jags.model("pod_surv_cap-2026.txt", data = mcmc.data, inits = mcmc.inits, n.chains = 3, n.adapt = 10000)
 update(m1) # another burn in
-out1 = coda.samples(model = m1, variable.names = mcmc.params, n.iter = 20000)
+out1 = coda.samples(model = m1, variable.names = mcmc.params, n.iter = 50000)
 
 ## draws ----
 out1_df = posterior::as_draws_df(out1)
