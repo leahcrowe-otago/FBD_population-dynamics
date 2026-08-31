@@ -16,13 +16,17 @@ ID_per_day_SA<-readRDS("./data/ID_per_day_SA.RDS")
 
 source('./scripts/model_run.R', local = TRUE)$value
 
-# save results ----
-saveRDS(out1_df, file = paste0("./data/survival&cap_SA",Sys.Date(),".rds"))
+`# save results ----
+saveRDS(out1_df, file = paste0("./data/survival&cap_SA",Sys.Date(),".rds")) 
 
 # Load results ----
 #date = "2025-01-29"
-date = "2026-03-31"
+date = "2026-03-31" #5k burnin, 20k iterations
+date = "2026-08-26" #10k burnin, 50k iterations, tau out
 results_in_SA<-readRDS(paste0("./data/survival&cap_SA",date,".rds"))
+
+max(results_in_SA$`tau[2]`)
+bayesplot::mcmc_trace(results_in_SA, pars = c("tau[2]"))
 
 results_SA<-as.data.frame(summary(results_in_SA))
 results_SA
@@ -36,8 +40,10 @@ results_SA%>%
   mutate(sigma2 = median^2)
 
 results_SA%>%
-  filter(grepl("alpha", variable))%>%
-  mutate(sigma2 = median^2)
+  filter(grepl("tau", variable))
+
+results_SA%>%
+  filter(grepl("alpha", variable))
 
 beta_med<-results_SA%>%
   filter(grepl("beta", variable))%>%
@@ -59,6 +65,9 @@ eps<-results_SA%>%
     grepl(".67", calfyr_season) ~ "Winter",
     TRUE ~ "Spring"
   ))
+
+
+library(ggplot2)
 
 ggplot(eps%>%filter(var == "phi"))+
   geom_boxplot(aes(x = Season, y = median))+
@@ -97,10 +106,10 @@ results_phi_SA<-results_SA%>%
     TRUE ~ "no effort"))%>%
   mutate(area = "Survey area")
 
+saveRDS(results_phi_SA, file = paste0("./data/results_phi_sA",Sys.Date(),".rds"))
+
 summary(results_phi_SA)
   
-library(ggplot2)
-
 ## capture prob # not identifiable at first occasion
 
 results_p_SA<-results_SA%>%
@@ -118,6 +127,8 @@ results_p_SA<-results_SA%>%
     TRUE ~ "no effort"))%>%
   mutate(area = "Survey area")
 
+saveRDS(results_p_SA, file = paste0("./data/results_p_SA",Sys.Date(),".rds"))
+
 ###
 
 N_SA<-results_SA%>%
@@ -133,6 +144,8 @@ N_SA<-results_SA%>%
   mutate(eff = case_when(
     IDperDay != 0 ~ "effort",
     TRUE ~ "no effort"))
+
+saveRDS(N_SA, file = paste0("./data/results_N_SA",Sys.Date(),".rds"))
 
 sumstats_n_SA<-N_SA%>%
   filter(median > 0)%>%
