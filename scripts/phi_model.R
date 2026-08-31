@@ -81,7 +81,7 @@ model<-function(){
 } 
 
 ## global params ----
-mcmc.params<-c("p.est","phi.est","beta","alpha","sigma","epsilon","Doubtful_N","Dusky_N")
+mcmc.params<-c("p.est","phi.est","beta","alpha","sigma","tau","epsilon","Doubtful_N","Dusky_N")
 
 ## global inits ----
 z.inits <- function(ch){
