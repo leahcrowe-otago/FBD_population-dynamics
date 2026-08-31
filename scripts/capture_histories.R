@@ -295,7 +295,7 @@ ggplot(num_ind_days, aes(x = num_photo_days_season, y = n, label = CALFYEAR, fil
                      minor_breaks = seq(0,26,1)) +
   scale_fill_manual(values = c("Spring" = "orange", "Summer" = "lightgrey", "Winter" = "blue"))
   
-ggsave('./figures/days_ind.png', dpi = 320, width = 300, height = 200, units = 'mm')
+ggsave('./figures/days_ind.png', dpi = 320, width = 220, height = 150, units = 'mm')
 
 # sampled occasions vs not
 
