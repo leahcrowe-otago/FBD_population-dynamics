@@ -374,18 +374,34 @@ ggsave('./figures/fig1.png', fig1, dpi = 300, width = 200, height = 200, units =
 
 long_samp_SA<-ID_per_day_SA%>%
   dplyr::select(year_season_code, POD, n.x)%>%
-  filter(year_season_code != 2007.67)%>%
+  filter(year_season_code != 2007.67)
+
+wide_samp_SA<-long_samp_SA%>%
   tidyr::pivot_wider(names_from = year_season_code, values_from = n.x)
 
-saveRDS(long_samp_SA, "./data/long_samp_SA.RDS") 
+saveRDS(wide_samp_SA, "./data/wide_samp_SA.RDS") 
+
+wide_season_SA<-long_samp_SA%>%
+  dplyr::select(-n.x)%>%
+  ungroup()%>%
+  mutate(season = case_when(
+    substr(year_season_code,6,7) == "" ~ "1", #spring
+    substr(year_season_code,6,7) == "33" ~ "2", #summer
+    substr(year_season_code,6,7) == "67" ~ "3", #winter
+    ))%>%
+  tidyr::pivot_wider(names_from = year_season_code, values_from = season)%>%
+  dplyr::select(-POD)%>%
+  distinct()
+
+saveRDS(wide_season_SA, "./data/wide_season_SA.RDS") 
 
 #### annual sampling effort in survey area ----
 
-long_samp_calfyr<-ID_per_day_SA%>%
+wide_samp_calfyr<-ID_per_day_SA%>%
   distinct(CALFYEAR, POD)%>%
   mutate(n = 1)%>%
   tidyr::pivot_wider(names_from = CALFYEAR, values_from = n)
 
-saveRDS(long_samp_calfyr, "./data/long_samp_calfyr.RDS") 
+saveRDS(wide_samp_calfyr, "./data/wide_samp_calfyr.RDS") 
 
 
