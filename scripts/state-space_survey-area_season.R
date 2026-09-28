@@ -9,12 +9,14 @@ library(dplyr)
 ## only data collected in Doubtful or Dusky complexes
 ## seasonal ch
 everyone_ch_SA<-readRDS("./data/everyone_SA.RDS")
-long_samp_ch_SA<-readRDS("./data/long_samp_SA.RDS") #skip 2007.67
+wide_samp_ch_SA<-readRDS("./data/wide_samp_SA.RDS") #skip 2007.67
 ID_per_day_SA<-readRDS("./data/ID_per_day_SA.RDS") 
+wide_season_SA<-readRDS("./data/wide_season_SA.RDS") 
 
 # run model ----
 
-source('./scripts/model_run.R', local = TRUE)$value
+#source('./scripts/model_run.R', local = TRUE)$value
+source('./scripts/model_run_season.R', local = TRUE)$value
 
 `# save results ----
 saveRDS(out1_df, file = paste0("./data/survival&cap_SA",Sys.Date(),".rds")) 
@@ -23,6 +25,7 @@ saveRDS(out1_df, file = paste0("./data/survival&cap_SA",Sys.Date(),".rds"))
 #date = "2025-01-29"
 date = "2026-03-31" #5k burnin, 20k iterations
 date = "2026-08-26" #10k burnin, 50k iterations, tau out
+date = "2026-09-26" #10k burnin, 50k iterations, tau out, seasonal
 results_in_SA<-readRDS(paste0("./data/survival&cap_SA",date,".rds"))
 
 max(results_in_SA$`tau[2]`)
@@ -34,6 +37,7 @@ min(results_SA$ess_bulk, na.rm = T)
 max(results_SA$rhat, na.rm = T)
 
 bayesplot::mcmc_trace(results_in_SA, pars = c("beta[1]", "beta[2]","alpha[1]","alpha[2]","sigma[1]","sigma[2]")) 
+bayesplot::mcmc_trace(results_in_SA, pars = c("gamma[1,2]","gamma[2,2]","gamma[1,3]","gamma[2,3]")) 
 
 results_SA%>%
   filter(grepl("sigma", variable))%>%
@@ -44,6 +48,10 @@ results_SA%>%
 
 results_SA%>%
   filter(grepl("alpha", variable))
+
+results_SA%>%
+  filter(grepl("gamma", variable))%>%
+  mutate(odds_ratio = exp(median))
 
 beta_med<-results_SA%>%
   filter(grepl("beta", variable))%>%
@@ -59,7 +67,7 @@ eps<-results_SA%>%
   filter(grepl("epsilon", variable))%>%
   mutate(var = rep(rep(c("p","phi"), each = 1, (n_occ-1)*2)),
          pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 2), (n_occ-1)),
-         calfyr_season = (rep(names(long_samp_ch_SA)[2:(n_occ)], each = 4)))%>%
+         calfyr_season = (rep(names(wide_samp_ch_SA)[2:(n_occ)], each = 4)))%>%
   mutate(Season = case_when(
     grepl(".33", calfyr_season) ~ "Summer",
     grepl(".67", calfyr_season) ~ "Winter",
@@ -87,13 +95,13 @@ eps%>%
   distinct(pod, var, Season, q5, q25, q50, q75,q95)
   
 ## surival prob # not identifiable at last occasion
-occasions_SA<-names(long_samp_ch_SA)
+occasions_SA<-names(wide_samp_ch_SA)
 
 ID_per_day_SA$year_season_code<-as.character(ID_per_day_SA$year_season_code)
 
 results_phi_SA<-results_SA%>%
   filter(grepl("phi.est", variable))%>%
-  mutate(calfyr_season = (rep(names(long_samp_ch_SA)[2:(n_occ)], each = 2)), # skip 2006.07
+  mutate(calfyr_season = (rep(names(wide_samp_ch_SA)[2:(n_occ)], each = 2)), # skip 2006.07
          pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 1), (n_occ-1)))%>%
   mutate(Season = case_when(
     grepl(".33", calfyr_season) ~ "Summer",
@@ -114,7 +122,7 @@ summary(results_phi_SA)
 
 results_p_SA<-results_SA%>%
   filter(grepl("p.est", variable))%>%
-  mutate(calfyr_season = rep(names(long_samp_ch_SA)[3:(n_occ+1)], each = 2),
+  mutate(calfyr_season = rep(names(wide_samp_ch_SA)[3:(n_occ+1)], each = 2),
          pod = rep(rep(c("DOUBTFUL","DUSKY"), each = 1), (n_occ-1)))%>%
   mutate(Season = case_when(
     grepl(".33", calfyr_season) ~ "Summer",
@@ -133,7 +141,7 @@ saveRDS(results_p_SA, file = paste0("./data/results_p_SA",Sys.Date(),".rds"))
 
 N_SA<-results_SA%>%
   filter(grepl("Doubtful_N", variable) | grepl("Dusky_N", variable))%>%
-  mutate(calfyr_season = rep(rep(names(long_samp_ch_SA)[2:(n_occ+1)], each = 1),2),
+  mutate(calfyr_season = rep(rep(names(wide_samp_ch_SA)[2:(n_occ+1)], each = 1),2),
          Pod = c(rep("DOUBTFUL",56),rep("DUSKY",56)))%>%
   mutate(Season = case_when(
     grepl(".33", calfyr_season) ~ "Summer",
