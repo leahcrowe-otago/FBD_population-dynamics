@@ -62,7 +62,8 @@ f
 
 # model ----
 # model built in phi_model.R
-source('./scripts/phi_model_season.R', local = TRUE)$value
+#source('./scripts/phi_model_season.R', local = TRUE)$value
+source('./scripts/phi_model_season-pod.R', local = TRUE)$value
 
 ## data ----
 mcmc.data<-list(
