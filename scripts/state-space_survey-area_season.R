@@ -25,7 +25,7 @@ saveRDS(out1_df, file = paste0("./data/survival&cap_SA",Sys.Date(),".rds"))
 #date = "2025-01-29"
 date = "2026-03-31" #5k burnin, 20k iterations
 date = "2026-08-26" #10k burnin, 50k iterations, tau out
-date = "2026-09-26" #10k burnin, 50k iterations, tau out, seasonal
+date = "2026-10-05" #10k burnin, 50k iterations, tau out, + seasonal interactive with pod
 results_in_SA<-readRDS(paste0("./data/survival&cap_SA",date,".rds"))
 
 max(results_in_SA$`tau[2]`)
@@ -37,11 +37,15 @@ min(results_SA$ess_bulk, na.rm = T)
 max(results_SA$rhat, na.rm = T)
 
 bayesplot::mcmc_trace(results_in_SA, pars = c("beta[1]", "beta[2]","alpha[1]","alpha[2]","sigma[1]","sigma[2]")) 
-bayesplot::mcmc_trace(results_in_SA, pars = c("gamma[1,2]","gamma[2,2]","gamma[1,3]","gamma[2,3]")) 
+#capture
+bayesplot::mcmc_trace(results_in_SA, pars = c("gamma[1,1,1]","gamma[1,2,1]","gamma[1,1,2]","gamma[1,2,2]","gamma[1,1,3]","gamma[1,2,3]")) 
+#survival
+bayesplot::mcmc_trace(results_in_SA, pars = c("gamma[2,1,1]","gamma[2,2,1]","gamma[2,1,2]","gamma[2,2,2]","gamma[2,1,3]","gamma[2,2,3]")) 
 
 results_SA%>%
   filter(grepl("sigma", variable))%>%
   mutate(sigma2 = median^2)
+
 
 results_SA%>%
   filter(grepl("tau", variable))
@@ -49,11 +53,34 @@ results_SA%>%
 results_SA%>%
   filter(grepl("alpha", variable))
 
-results_SA%>%
-  filter(grepl("gamma", variable))%>%
-  mutate(odds_ratio = exp(median))
+#capture
+gamma_p<-results_SA%>%
+  filter(grepl("gamma\\[1", variable))%>%
+  mutate(pod = rep(c("Doubtful","Dusky"), 3),
+         season = rep(c("spring","winter","summer"), each = 2))
 
-beta_med<-results_SA%>%
+gamma_p$season<-factor(gamma_p$season, levels = c("spring","winter","summer"))
+
+ggplot(gamma_p)+
+  geom_point(aes(x = season, y = median))+
+  geom_errorbar(aes(x = season, ymin = q5, max = q95))+
+  facet_wrap(~pod)
+
+#survival
+gamma_phi<-results_SA%>%
+  filter(grepl("gamma\\[2", variable))%>%
+  mutate(pod = rep(c("Doubtful","Dusky"), 3),
+         season = rep(c("spring","winter","summer"), each = 2))
+
+gamma_phi$season<-factor(gamma_phi$season, levels = c("spring","winter","summer"))
+
+ggplot(gamma_phi)+
+  geom_point(aes(x = season, y = median))+
+  geom_errorbar(aes(x = season, ymin = q5, max = q95))+
+  facet_wrap(~pod)
+
+#
+ beta_med<-results_SA%>%
   filter(grepl("beta", variable))%>%
   mutate(inv_logit_beta_med = 1/(1+exp(-median)),
          inv_logit_beta_q5 = 1/(1+exp(-q5)),
