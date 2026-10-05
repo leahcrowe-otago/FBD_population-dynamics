@@ -32,12 +32,9 @@ model<-function(){
     beta[j] ~ dt(0,1,3)
   }
   
-  # Priors for seasonal effects (identifiable framework)
-  # Season 1 acts as the baseline (0 effect), others are relative to it
-  gamma[1, 1] <- 0
-  gamma[2, 1] <- 0
+  # Priors for seasonal effects 
   
-  for (s in 2:3) {
+  for (s in 1:3) {
     gamma[1, s] ~ dt(0,1,3) # Season effect on p
     gamma[2, s] ~ dt(0,1,3) # Season effect on phi
   }
