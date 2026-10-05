@@ -398,9 +398,9 @@ saveRDS(wide_season_SA, "./data/wide_season_SA.RDS")
 #### annual sampling effort in survey area ----
 
 wide_samp_calfyr<-ID_per_day_SA%>%
-  distinct(CALFYEAR, POD)%>%
+  distinct(CALFYEAR.x, POD)%>%
   mutate(n = 1)%>%
-  tidyr::pivot_wider(names_from = CALFYEAR, values_from = n)
+  tidyr::pivot_wider(names_from = CALFYEAR.x, values_from = n)
 
 saveRDS(wide_samp_calfyr, "./data/wide_samp_calfyr.RDS") 
 
