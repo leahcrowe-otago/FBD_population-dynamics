@@ -61,7 +61,7 @@ gamma_p<-results_SA%>%
 
 gamma_p$season<-factor(gamma_p$season, levels = c("spring","winter","summer"))
 
-ggplot(gamma_p)+
+gamma_p_plot<-ggplot(gamma_p)+
   geom_point(aes(x = season, y = median))+
   geom_errorbar(aes(x = season, ymin = q5, max = q95))+
   facet_wrap(~pod)
@@ -74,11 +74,18 @@ gamma_phi<-results_SA%>%
 
 gamma_phi$season<-factor(gamma_phi$season, levels = c("spring","winter","summer"))
 
-ggplot(gamma_phi)+
+gamma_phi_plot<-ggplot(gamma_phi)+
   geom_point(aes(x = season, y = median))+
   geom_errorbar(aes(x = season, ymin = q5, max = q95))+
   facet_wrap(~pod)
 
+
+ggpubr::ggarrange(gamma_p_plot, gamma_phi_plot, labels = "auto")
+
+bayesplot::mcmc_intervals(results_in_SA, pars = c("gamma[1,1,1]","gamma[1,2,1]","gamma[1,1,2]","gamma[1,2,2]","gamma[1,1,3]","gamma[1,2,3]"))
+bayesplot::mcmc_intervals(results_in_SA, pars = c("gamma[2,1,1]","gamma[2,2,1]","gamma[2,1,2]","gamma[2,2,2]","gamma[2,1,3]","gamma[2,2,3]"))
+
+names(results_in_SA)
 #
  beta_med<-results_SA%>%
   filter(grepl("beta", variable))%>%
