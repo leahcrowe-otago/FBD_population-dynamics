@@ -26,6 +26,7 @@ saveRDS(out1_df, file = paste0("./data/survival&cap_SA",Sys.Date(),".rds"))
 date = "2026-03-31" #5k burnin, 20k iterations
 date = "2026-08-26" #10k burnin, 50k iterations, tau out
 date = "2026-10-05" #10k burnin, 50k iterations, tau out, + seasonal interactive with pod
+date = "2026-10-06" #10k burnin, 50k iterations, tau out, + relative seasonal interactive with pod
 results_in_SA<-readRDS(paste0("./data/survival&cap_SA",date,".rds"))
 
 max(results_in_SA$`tau[2]`)
@@ -53,11 +54,21 @@ results_SA%>%
 results_SA%>%
   filter(grepl("alpha", variable))
 
-#capture
+# gamma capture
 gamma_p<-results_SA%>%
   filter(grepl("gamma\\[1", variable))%>%
   mutate(pod = rep(c("Doubtful","Dusky"), 3),
          season = rep(c("spring","winter","summer"), each = 2))
+
+gamma_p%>%filter(pod == "Doubtful" & mean != 0)%>%
+  dplyr::select(mean,median,q5,q95)%>%
+  mutate(across(everything(), ~ .[1] - .[2]))%>%
+  distinct()
+
+gamma_p%>%filter(pod == "Dusky" & mean != 0)%>%
+  dplyr::select(mean,median,q5,q95)%>%
+  mutate(across(everything(), ~ .[1] - .[2]))%>%
+  distinct()
 
 gamma_p$season<-factor(gamma_p$season, levels = c("spring","winter","summer"))
 
@@ -66,7 +77,7 @@ gamma_p_plot<-ggplot(gamma_p)+
   geom_errorbar(aes(x = season, ymin = q5, max = q95))+
   facet_wrap(~pod)
 
-#survival
+# gamma survival
 gamma_phi<-results_SA%>%
   filter(grepl("gamma\\[2", variable))%>%
   mutate(pod = rep(c("Doubtful","Dusky"), 3),
@@ -79,6 +90,15 @@ gamma_phi_plot<-ggplot(gamma_phi)+
   geom_errorbar(aes(x = season, ymin = q5, max = q95))+
   facet_wrap(~pod)
 
+gamma_phi%>%filter(pod == "Doubtful" & mean != 0)%>%
+  dplyr::select(mean,median,q5,q95)%>%
+  mutate(across(everything(), ~ .[1] - .[2]))%>%
+  distinct()
+
+gamma_phi%>%filter(pod == "Dusky" & mean != 0)%>%
+  dplyr::select(mean,median,q5,q95)%>%
+  mutate(across(everything(), ~ .[1] - .[2]))%>%
+  distinct()
 
 ggpubr::ggarrange(gamma_p_plot, gamma_phi_plot, labels = "auto")
 
