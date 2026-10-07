@@ -31,17 +31,16 @@ model<-function(){
     alpha[j] ~ dt(0,1,3)
     beta[j] ~ dt(0,1,3)
   
-    for (s in 1:3) {
+    # Season 1 (spring) acts as the baseline (0 effect), others are relative to it for each pod
+    gamma[1,j,1] <- 0
+    gamma[2,j,1] <- 0
+    
+    for (s in 2:3) {
       gamma[1,j,s] ~ dt(0,1,3) # Season effect on p
       gamma[2,j,s] ~ dt(0,1,3) # Season effect on phi
     }  
     
   }
-  
-  # Priors for seasonal effects (identifiable framework)
-  # Season 1 acts as the baseline (0 effect), others are relative to it
-  # gamma[1, 1] <- 0
-  # gamma[2, 1] <- 0
   
 
   tau[1] ~ dscaled.gamma(1,3)
